@@ -1,31 +1,26 @@
-import os
-import chardet
+def get_file_enc(file_name):
+    import chardet
+    file_path = get_file_path(file_name)
+    rawdata = open(file_path, 'rb').read()
+    file_enc = chardet.detect(rawdata)['encoding']
+    return file_enc
+
+
+def get_file_path(file_name):
+    import os
+    file_path = os.path.join(os.getcwd(), file_name)
+    return file_path
 
 
 def get_list_by_file(file_name: str) -> list:
-    """
-
-    returns a list from a given file
-
-    """
-    file_path = os.path.join(os.getcwd(), file_name)
-    rawdata = open(file_name, 'rb').read()
-    file_enc = chardet.detect(rawdata)['encoding']
+    file_path = get_file_path(file_name)
+    file_enc = get_file_enc(file_path)
     with open(file_path, encoding=file_enc) as f:
         result = [x.strip('\n') for x in f.readlines() if x.strip('\n') != '']
     return result
 
 
 def get_cook_book(cook_list: list) -> dict:
-    """
-
-    returns a dict from a given list
-
-    dict structure goes by like this: {dish_str: ingredient_list}
-
-    ingredient_list structure goes by like this: {'ingredient_name': str, 'quantity': int, 'measure': str}
-
-    """
     cook_dict = {}
     dish = [x for x in cook_list if x.find('|') == -1 and not x.isdigit()]
     ing_quantity = [int(x) for x in cook_list if x.isdigit()]
@@ -43,15 +38,6 @@ def get_cook_book(cook_list: list) -> dict:
 
 
 def get_shop_list_by_dishes(dishes: list, person_count: int) -> dict:
-    """
-
-    returns a dict from a given dishes list and person count
-
-    dict structure goes by like this: {ingredient_str: quantity_dict}
-
-    quantity_dict structure goes by like this: {'measure': str, 'quantity': int}
-
-    """
     cook_book = get_cook_book(get_list_by_file('recipes.txt'))
     ing_dict = {}
     for dish in dishes:
@@ -68,5 +54,30 @@ def get_shop_list_by_dishes(dishes: list, person_count: int) -> dict:
     return ing_dict
 
 
-b = get_shop_list_by_dishes(['Омлет', 'Фахитос'], 1)
-print(b)
+shop_list = get_shop_list_by_dishes(['Омлет', 'Фахитос'], 2)
+print(shop_list)
+
+
+def get_merged_text(*files: str):
+    file_dict = {}
+    for file in files:
+        file_dict[file] = len(get_list_by_file(file))
+    sorted_file = sorted(file_dict.items(), key=lambda item: item[1])
+    sorted_dict = {k: v for k, v in sorted_file}
+    for i, (k, v) in enumerate(sorted_dict.items()):
+        file_enc = get_file_enc(k)
+        file_list = [k, str(v)]
+        file_list.extend(get_list_by_file(k))
+        lined_list = [x+'\n' for x in file_list]
+        if i == 0:
+            with open('merged_file.txt', 'w', encoding=file_enc) as f:
+                f.writelines(lined_list)
+        else:
+            with open('merged_file.txt', 'a', encoding=file_enc) as f:
+                f.writelines(lined_list)
+    file_path = get_file_path('merged_file.txt')
+    return file_path
+
+
+merged_text = get_merged_text('1.txt', '2.txt', '3.txt')
+print(merged_text)
